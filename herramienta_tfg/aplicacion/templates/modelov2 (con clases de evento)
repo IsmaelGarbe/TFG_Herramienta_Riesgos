@@ -1,0 +1,139 @@
+# Librerías
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_score, recall_score, confusion_matrix, f1_score
+from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from sklearn.decomposition import PCA
+from prettytable import PrettyTable
+
+# Cargar datos
+dtypes = {
+    "nombre_empresa": str, "pais": str, "opera_otrospaises": str, "sector_empresa": str,
+    "numero_empleados": str, "infraestructura_critica": str, "activos_criticos": str,
+    "pilares_prioritarios": str, "actor_amenaza": str, "incidente_sufrido": str,
+    "pilar_critico": str, "sistemas_operativos": str, "despliegue_sistemas": str,
+    "centros_datos": str, "segmentacion_red": str, "vpn": str, "firewall": str,
+    "monitorizacion_red": str, "balanceadores": str, "antiphishing": str, "edr": str,
+    "actualizaciones": str, "frecuencia_actualizaciones": str, "autenticacion": str,
+    "politica_contraseñas": str, "iam": str, "revocacion": str, "backups": str,
+    "evento_amenaza": str
+}
+def cargar_datos(ruta_csv):
+    return pd.read_csv(ruta_csv, dtype=dtypes, delimiter=';', encoding='latin1')
+
+
+# Revisar clases y distribución
+def revisarDistribucionClases(y):
+    print("\n📊 Distribución de clases en 'evento_amenaza':")
+    valores, conteos = np.unique(y, return_counts=True)
+    for clase, count in zip(valores, conteos):
+        print(f"  Clase {clase}: {count} casos")
+
+
+# Preparar datos
+def eliminarColumnasVacias(df):
+    valores_unicos = df.nunique()
+    columnas_unicas = df.loc[:, valores_unicos == 1]
+    return df.drop(columnas_unicas, axis=1)
+
+def missingValues(df):
+    return df.isnull().any().any()
+
+def fillMissingValues(df):
+    df.fillna(df.mean(numeric_only=True), inplace=True)
+    return df
+
+def codificarVariablesCategoricas(df):
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = pd.factorize(df[col])[0]
+    return df
+
+def tratarValoresExtremos(df):
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.fillna(df.mean(numeric_only=True), inplace=True)
+    return df
+
+def normalizarDatos(df):
+    if 'evento_amenaza' in df.columns:
+        target = df['evento_amenaza']
+        df = df.drop('evento_amenaza', axis=1)
+    else:
+        target = None
+
+    scaler = MinMaxScaler()
+    scaled_df = scaler.fit_transform(df)
+    df_scaled = pd.DataFrame(scaled_df, columns=df.columns)
+
+    if target is not None:
+        df_scaled['evento_amenaza'] = target
+    return df_scaled
+
+def prepararDatos(df):
+    print("Eliminando columnas vacías...")
+    df = eliminarColumnasVacias(df)
+
+    print("Rellenando valores vacíos...")
+    if missingValues(df):
+        df = fillMissingValues(df)
+
+    print("Separando la variable objetivo...")
+    y = df['evento_amenaza']
+    df = df.drop('evento_amenaza', axis=1)
+
+    print("Codificando variables categóricas...")
+    df = codificarVariablesCategoricas(df)
+
+    print("Codificando variable objetivo...")
+    y = pd.factorize(y)[0]
+    revisarDistribucionClases(y)
+
+    print("Tratando valores extremos...")
+    df = tratarValoresExtremos(df)
+
+    print("Normalizando datos...")
+    df = normalizarDatos(df)
+
+    print("Dividiendo en conjunto de entrenamiento y prueba...")
+    return train_test_split(df, y, test_size=0.2, random_state=42)
+
+
+def randomForest():
+    return RandomForestClassifier(criterion='entropy', max_depth=10, max_features=10)
+
+def entrenamiento(model, X_train, y_train):
+    model.fit(X_train, y_train)
+    return model
+
+def evaluarRendimiento(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+    conf_matrix = confusion_matrix(y_test, y_pred)
+
+    print(f"Precision: {precision:.3f}")
+    print(f"Recall: {recall:.3f}")
+    print(f"F1-score: {f1:.3f}")
+
+    table = PrettyTable()
+    table.field_names = ["", "Predicción negativa", "Predicción positiva"]
+    table.add_row(["Real negativa", conf_matrix[0][0], conf_matrix[0][1]])
+    table.add_row(["Real positiva", conf_matrix[1][0], conf_matrix[1][1]])
+    print("Matriz de Confusión:")
+    print(table)
+
+
+# Programa principal
+if __name__ == "__main__":
+    csv_path = 'C:/Users/X435/Downloads/casosSinteticosRiesgos.csv'
+    datos = cargar_datos(csv_path)
+    print("✅ Datos cargados correctamente. Filas:", len(datos))
+    X_train, X_test, y_train, y_test = prepararDatos(datos)
+    modelo = randomForest()
+    modelo = entrenamiento(modelo, X_train, y_train)
+    evaluarRendimiento(modelo, X_test, y_test)

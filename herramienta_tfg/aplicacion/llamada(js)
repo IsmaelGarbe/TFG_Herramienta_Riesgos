@@ -1,0 +1,134 @@
+
+const LS_KEY = 'eval_ciberriesgo_v1';
+const estado = { corp:{}, infra:{}, mad:{} };
+
+function getFormData(formSelector){
+  const fd = new FormData(document.querySelector(formSelector));
+  return Object.fromEntries(fd.entries());
+}
+function guardarPaso(clave, formSelector){
+  estado[clave] = getFormData(formSelector);
+  localStorage.setItem(LS_KEY, JSON.stringify(estado));
+}
+function cargarEstado(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const prev = JSON.parse(raw);
+    ['corp','infra','mad'].forEach(k => estado[k] = prev[k] || {});
+  } catch(e){}
+}
+cargarEstado();
+
+/* ====== Envío de la fila al CSV (Flask) ====== */
+async function enviarFilaCSV(){
+  // Combina los 3 módulos en un único objeto
+  const payload = Object.assign({}, estado.corp, estado.infra, estado.mad);
+
+  try {
+    const res = await fetch('/api/finalizar-evaluacion', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok){
+      console.error('Error al añadir la fila:', data);
+      alert('No se pudo guardar la evaluación en el CSV.');
+      return;
+    }
+
+    // (Opcional) Lanzar el modelo y traer predicciones
+    // const run = await fetch('/api/ejecutar-modelo', { method:'POST' });
+    // const out = await run.json();
+    // if (run.ok && out.ok){ window.prediccionesML = out.predicciones; }
+
+    // Habilita el botón para la siguiente fase
+    document.getElementById('generarAmenazasBtn').disabled = false;
+    alert('Evaluación guardada en CSV. Puedes pasar a "Calcular riesgo".');
+
+  } catch (e) {
+    console.error(e);
+    alert('Error de red al guardar en CSV.');
+  }
+}
+// Devuelve el JSON con todos los campos que espera el CSV (ajústalo a tu caso real)
+function payloadEvaluacion() {
+  // Si ya guardas los módulos en localStorage:
+  // const state = JSON.parse(localStorage.getItem('evaluacion_ciberriesgo_v1') || '{}');
+  // Combina aquí 'form-corporativos', 'form-infraestructura', 'form-madurez' → un solo objeto
+  // return {...state['form-corporativos'], ...state['form-infraestructura'], ...state['form-madurez']};
+
+  // Si aún no lo tienes, como mínimo serializa tus formularios:
+  const obj = {};
+  ['form-corporativos','form-infraestructura','form-madurez'].forEach(id => {
+    const form = document.getElementById(id);
+    if (!form) return;
+    const fd = new FormData(form);
+    for (const [k,v] of fd.entries()) obj[k] = v;
+  });
+  return obj;
+}
+
+// Llamar al finalizar: guarda en CSV, ejecuta modelo y pinta la predicción
+async function finalizarEvaluacion() {
+  const payload = payloadEvaluacion();
+
+  try {
+    const r = await fetch('/api/finalizar-evaluacion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    console.log('finalizar-evaluacion ->', data);
+
+    if (!r.ok || !data.ok) {
+      alert(data.message || 'No se pudo finalizar la evaluación.');
+      return;
+    }
+
+    // Mostramos la frase con la predicción
+    const cont = document.getElementById('resultadoML');
+    const txt  = document.getElementById('prediccionTexto');
+    if (cont && txt) {
+      txt.textContent = data.prediccion || '—';
+      cont.style.display = 'block';
+    } else {
+      // Fallback si no está el contenedor
+      alert('Amenaza más probable: ' + (data.prediccion || '—'));
+    }
+
+  } catch (e) {
+    console.error(e);
+    alert('Error llamando a /api/finalizar-evaluacion');
+  }
+}
+
+
+/* ====== Enganches mínimos en tus botones de navegación ====== */
+// Paso 1 → Paso 2
+document.getElementById('btnNext0')?.addEventListener('click', () => {
+  if (validateStep(0)) {
+    guardarPaso('corp', '#form-corporativos');
+    goToStep(1);
+  }
+});
+
+// Paso 2 → Paso 3
+document.getElementById('btnNext1')?.addEventListener('click', () => {
+  if (validateStep(1)) {
+    guardarPaso('infra', '#form-infraestructura');
+    goToStep(2);
+  }
+});
+
+// Finalizar (guarda último módulo y llama a Flask)
+document.getElementById('btnFinish')?.addEventListener('click', async () => {
+  if (validateStep(2)) {
+    guardarPaso('mad', '#form-madurez');
+    document.getElementById('btnFinish').disabled = true;
+    await enviarFilaCSV();
+  }
+});
+
