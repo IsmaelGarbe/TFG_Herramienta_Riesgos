@@ -17,7 +17,7 @@ function pintarCurvas(curvas){
       responsive:true,
       scales:{
         x:{
-          title:{display:true,text:'€'},
+          title:{display:true,text:'Impacto €'},
           ticks: {
             callback: function(value, index) {
               const realValue = this.chart.data.labels[index];
@@ -26,7 +26,7 @@ function pintarCurvas(curvas){
           }
         },
         y:{
-          title:{display:true,text:'%'}
+          title:{display:true,text:'Probabilidad %'}
         }
       }
     }
@@ -48,7 +48,7 @@ function pintarCurvas(curvas){
       responsive:true,
       scales:{
         x:{
-          title:{display:true,text:'€'},
+          title:{display:true,text:'Impacto €'},
           ticks: {
             callback: function(value, index) {
               const realValue = this.chart.data.labels[index];
@@ -57,7 +57,7 @@ function pintarCurvas(curvas){
           }
         },
         y:{
-          title:{display:true,text:'% Probabilidad'}
+          title:{display:true,text:'Probabilidad %'}
         }
       }
     }

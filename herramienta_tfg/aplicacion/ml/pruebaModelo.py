@@ -30,22 +30,6 @@ for col in nueva_fila.columns:
         raras = freq[freq < 0.02].index
         nueva_fila[col] = nueva_fila[col].replace(raras, 'OTRA')
 
-"""def aplicarCodificacionPersistente(df, encoders):
-    # Recorre el dataframe y aplica la codificación guardada
-    for col in df.columns:
-        if col in encoders:
-            le = encoders[col]
-            df[col] = df[col].astype(str)
-
-            # GESTIÓN DE CATEGORÍAS NO VISTAS
-            new_labels = df[col].loc[~df[col].isin(le.classes_)]
-            if not new_labels.empty:
-                # Para categorías nuevas, asignamos el código de la clase más frecuente
-                df.loc[new_labels.index, col] = le.classes_[0]
-
-            df[col] = le.transform(df[col])
-
-    return df"""
 # 3. Preprocesado igual que en entrenamiento
 #nueva_fila = codificarVariablesCategoricas(nueva_fila)
 #nueva_fila= aplicarCodificacionPersistente(nueva_fila, encoders)

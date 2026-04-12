@@ -1,4 +1,3 @@
-#fair backend
 from __future__ import annotations
 from dataclasses import dataclass
 import math
@@ -30,9 +29,6 @@ def mapear_lef(lef_respuesta: str) -> tuple[float,float,float]:
     return LEF_MAP.get((lef_respuesta or "").strip(), (0.25, 0.50, 0.75))
 
 def sample_pert(rng: np.random.Generator, a: float, m: float, b: float, lamb: float = 4.0, size=None):
-    """
-    PERT usando Beta parametrizada (igual que en el JS).
-    """
     a, m, b = float(a), float(m), float(b)
     if b <= a:
         return np.full(size or (), max(a,0.0), dtype=float)
@@ -44,7 +40,6 @@ def sample_pert(rng: np.random.Generator, a: float, m: float, b: float, lamb: fl
     beta  = 1.0 + lamb * ((b - m) / (b - a))
     alpha=max(alpha,1e-6)
     beta=max(beta,1e-6)
-    # numpy tiene beta directo
     x = rng.beta(alpha, beta, size=size)
     return a + x * (b - a)
 

@@ -34,6 +34,8 @@
         window.evaluacion.madurez = prev.madurez;
         hydrateForm('form-madurez', prev.madurez);
       }
+      const formMadurez = document.getElementById('form-madurez');
+      document.getElementById('btnFinish').disabled = !formMadurez.checkValidity();
     });
 
   // Hidrata un <form> con valores
@@ -81,6 +83,7 @@
 
       form.querySelectorAll(selector).forEach(el=>{
         el.checked = vals.includes(el.value);
+        el.dispatchEvent(new Event('change', { bubbles: true }));
       });
     });
 
@@ -132,7 +135,7 @@
       const empresa = select.value;
       if (!empresa) return;
 
-      const allData = loadAll(); // 🔥 siempre datos actualizados
+      const allData = loadAll(); // siempre datos actualizados
       const data = allData[empresa];
 
       // Cargar datos en memoria
@@ -165,7 +168,7 @@
         .map(el => el.value);
 
       if (checked.length) {
-        obj[name] = checked; // 👈 array real
+        obj[name] = checked;
       }
     });
 
@@ -181,9 +184,7 @@
     }).format(valor);
   }
 
-  // ====== Enchufes sobre tus botones ======
-  // OJO: este bloque asume que ya existen los elementos en el DOM
-  // Lógica del asistente de pasos + validaciones
+  // ====== Enchufes sobre los botones ======
     const show = el => el.style.display = '';
     const hide = el => el.style.display = 'none';
     const qs  = (s, r=document) => r.querySelector(s);
@@ -338,7 +339,12 @@
         document.getElementById("empresaSelector").value = nombre;
         qs('#btnFinish').disabled = true;
         qs('#generarAmenazasBtn').disabled = false;
-        alert('Formulario completado. Ya puedes calcular el riesgo.');
+        Swal.fire({
+          title: 'Formulario completado',
+          text: 'Ya puedes calcular el riesgo.',
+          icon: 'success',
+          confirmButtonText: 'OK'
+        });
       }
     });
     qsa('#form-madurez input, #form-madurez select').forEach(el=>{
@@ -458,9 +464,7 @@
         if (data.curvas) {
           Charts.pintarCurvas(data.curvas);
         }
-
-        // (Opcional) resumen textual
-        // 🔥 Mostrar métricas FAIR
+        //Mostrar métricas FAIR
         if (data.resumen) {
           const r = data.resumen;
 

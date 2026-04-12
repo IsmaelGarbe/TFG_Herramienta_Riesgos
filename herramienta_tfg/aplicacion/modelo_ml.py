@@ -387,34 +387,7 @@ if __name__ == "__main__":
         #X_train = pca.fit_transform(X_train)
         #X_test = pca.transform(X_test)
         # Aplicar SMOTE para las clases minoritarias sin alterar al resto de clases
-        """print("Antes de usar SMOTE")
-        print(pd.Series(y_train).value_counts())
-        smote = SMOTE(
-            sampling_strategy={0:50, 2:50, 3: 55},
-            k_neighbors=1,
-            random_state=42
-        )
-
-        X_train, y_train = smote.fit_resample(X_train, y_train)
-        print("Distribución después de SMOTE:")
-        print(pd.Series(y_train).value_counts())"""
-
         print("Antes de SMOTE:", Counter(y_train))
-
-        """# Clase Fraude (label 3)
-        FRAUDE_CLASS = 3
-        TARGET_FRAUDE = 40
-
-        if Counter(y_train)[FRAUDE_CLASS] < TARGET_FRAUDE:
-            smote = SMOTE(
-                sampling_strategy={FRAUDE_CLASS: TARGET_FRAUDE},
-                k_neighbors=2,
-                random_state=42
-            )
-            X_train, y_train = smote.fit_resample(X_train, y_train)
-            print("Después de SMOTE:", Counter(y_train))
-        else:
-            print("SMOTE no aplicado: Fraude ya tiene suficientes muestras")"""
         smote = SMOTE(
             sampling_strategy='not majority',
             k_neighbors=2,
@@ -470,75 +443,3 @@ if __name__ == "__main__":
         table.add_row([class_names[i]] + list(row))
 
     print(table)
-
-    """# -------- HEATMAP PROFESIONAL --------
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(
-        conf_matrix_global,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=class_names,
-        yticklabels=class_names
-    )
-
-    plt.xlabel("Predicción")
-    plt.ylabel("Clase Real")
-    plt.title("Matriz de Confusión Global - XGBoost")
-    plt.tight_layout()
-    plt.show()"""
-
-
-"""
-# FASE PREDICCION MODELO YA ENTRENADO
-
-BASE_DIR = Path(__file__).resolve().parent
-CSV_PATH = BASE_DIR / "ml" / "casosSinteticosRiesgos.csv"
-MODEL_PATH = BASE_DIR / "ml" / "modelo_entrenado.joblib"
-
-
-def predecir():
-    # 1. Cargar modelo entrenado
-    model = load(MODEL_PATH)
-
-    # 2. Leer CSV y tomar la última fila
-    df = pd.read_csv(CSV_PATH, delimiter=";", encoding="cp1252")
-    ultima_fila = df.index[-1]
-    nueva_fila = df.tail(1).drop(columns=["evento_amenaza"], errors="ignore")
-
-    # 3. Preprocesado igual que en entrenamiento
-    nueva_fila = codificarVariablesCategoricas(nueva_fila)
-    nueva_fila = tratarValoresExtremos(nueva_fila)
-    nueva_fila = normalizarDatos(nueva_fila)
-
-    # 4. Ajustar columnas a las que el modelo espera
-    model_features = model.get_booster().feature_names
-    nueva_fila = nueva_fila.reindex(columns=model_features, fill_value=0)
-
-    # 5. Hacer predicción
-    pred = model.predict(nueva_fila)[0]
-
-    evento_amenaza= {
-        0: "Ransomware",
-        1: "DDOS (Denegación de servicio)",
-        2: "Brecha de datos",
-        3: "Fraude",
-        4: "Destrucción física"
-    }
-    try:
-        codigo = int(float(pred))
-        etiqueta = evento_amenaza.get(codigo, f"Desconocido ({codigo})")
-    except Exception:
-        etiqueta = "Desconocido"
-
-        # 7. Guardar la predicción en la última fila del CSV
-    df.at[ultima_fila, "evento_amenaza"] = etiqueta
-    df.to_csv(CSV_PATH, sep=";", encoding="cp1252", index=False)
-
-    # 8. Mostrar resultado en consola (opcional)
-    print(etiqueta)
-
-if __name__ == "__main__":
-    predecir()
-
-"""
